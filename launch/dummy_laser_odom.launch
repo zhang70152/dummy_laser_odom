@@ -1,0 +1,10 @@
+<launch>
+
+  <node pkg="dummy_laser_odom" name="dummy_laser_odom_node" type="dummy_laser_odom" output="screen">
+    <param name="map_width" type="double" value="800" />
+    <param name="map_height" type="double" value="800" />
+    <param name="map_resolution" type="double" value="0.05" />
+    <remap from="/dummy_laser_odom_node/scan" to="right_scan" />
+  </node>
+
+</launch>

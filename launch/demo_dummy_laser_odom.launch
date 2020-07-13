@@ -1,0 +1,16 @@
+<launch>
+  <param name="/use_sim_time" value="true" />
+
+  <node name="rviz" pkg="rviz" type="rviz" required="true"
+    args="-d $(find dummy_laser_odom)/rviz_config/laser_odom.rviz" />
+
+  <node pkg="dummy_laser_odom" name="dummy_laser_odom_node" type="dummy_laser_odom" output="screen">
+    <param name="map_width" type="double" value="800" />
+    <param name="map_height" type="double" value="800" />
+    <param name="map_resolution" type="double" value="0.05" />
+    <remap from="/dummy_laser_odom_node/scan" to="right_scan" />
+  </node>
+
+  <node name="playbag" pkg="rosbag" type="play" args="--clock $(find dummy_laser_odom)/bag/rl.bag"/>
+
+</launch>
