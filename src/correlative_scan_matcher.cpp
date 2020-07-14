@@ -24,9 +24,7 @@ void correlativeScanMatcher::bruteForceSearch(const sensor_msgs::LaserScan& scan
   vector<Candidate> result_candidates;
   vector<Candidate> rotation_canditate_sets = generateRotationScan(scan, 0, 0, 0);
 
-  float linear_search_window = 0.3;
-  float linear_search_interval = 0.05;
-  int step_size = linear_search_window /  linear_search_interval;
+  int step_size = linear_search_window_ /  linear_search_step_;
 
   for(int i = -step_size; i < step_size; i++)
   {
@@ -61,8 +59,8 @@ void correlativeScanMatcher::bruteForceSearch(const sensor_msgs::LaserScan& scan
     }
   }
     
-  x = best_candidate.x_offset * 0.05;
-  y = best_candidate.y_offset * 0.05;
+  x = best_candidate.x_offset * resolution_;
+  y = best_candidate.y_offset * resolution_;
   theta = best_candidate.orientation;
 
   //std::cout<<"x: "<<best_candidate.x_offset<<"  y:"<<best_candidate.y_offset<<" theta:"<<best_candidate.orientation<<" score:"<<best_candidate.score<<std::endl;
@@ -73,7 +71,7 @@ void correlativeScanMatcher::bruteForceSearch(const sensor_msgs::LaserScan& scan
 void correlativeScanMatcher::scoreCandidate(Candidate& candidate)
 {
   double score = LEAST_SCORE_NUMBER;
-  //std::cout<<"scan size:"<<candidate.discretize_scan.size()<<std::endl;
+
   for(int i = 0; i < candidate.discretize_scan.size(); i++)
   {
     //TODO: Condider boundry!
@@ -82,17 +80,13 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate)
 
     if(!pointInMap(point_index))
     {
-      std::cout<<"It will die."<<std::endl;
+      std::cout<<"Point out of boundry."<<std::endl;
       continue;
     }
     score += lookup_table_[point_index];
    
   }
-  if(score == 0)
-  {
-     std::cout<<"theres a score == 0 :"<<score<<std::endl;
-  }
- 
+
   candidate.score = score;
 }
 
@@ -105,16 +99,14 @@ vector<Candidate> correlativeScanMatcher::generateRotationScan(const sensor_msgs
 {
   vector<Candidate> rotation_canditate_sets;
 
-  float angle_search_window = 0.3;
-  float angle_search_interval = 0.03;
-  int step_size = 2 * angle_search_window /  angle_search_interval;
+  int step_size = 2 * angular_search_window_ /  angular_search_step_;
   
-  const double xcenter = (map_width_ / 2) * 0.05;
-  const double ycenter = (map_height_ / 2) * 0.05;
+  const double xcenter = (map_width_ / 2) * resolution_;
+  const double ycenter = (map_height_ / 2) * resolution_;
 
   for(int k = 0; k < step_size; k++)
   {
-    float rotated_angle = -angle_search_window + angle_search_interval * k;
+    float rotated_angle = -angular_search_window_ + angular_search_step_ * k;
     vector<size_t> pts;
     for (size_t i = 0; i < scan.ranges.size(); ++i)
     {

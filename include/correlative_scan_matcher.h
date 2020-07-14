@@ -52,6 +52,14 @@ class correlativeScanMatcher
 
     void bruteForceSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
 
+    void setSearchParameters(float linear_search_window, float linear_search_step, float angular_search_window, float angular_search_step)
+    {
+      linear_search_window_ = linear_search_window;
+      linear_search_step_ = linear_search_step;
+      angular_search_window_ = angular_search_window; 
+      angular_search_step_ = angular_search_step;
+    }
+
   private:
 
     vector<Candidate> generateRotationScan(const sensor_msgs::LaserScan& scan, float x, float y, float theta);
@@ -71,6 +79,12 @@ class correlativeScanMatcher
     int map_width_;
     int map_height_;
     float resolution_;
+
+
+    float linear_search_window_;
+    float linear_search_step_;
+    float angular_search_window_; 
+    float angular_search_step_;
 };
 
 

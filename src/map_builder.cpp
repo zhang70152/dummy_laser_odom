@@ -94,6 +94,20 @@ MapBuilder::MapBuilder(int width, int height, double resolution) :
 
   correlative_scan_matcher_ = new correlative_scan_math::correlativeScanMatcher(map_width_, map_height_, resolution);
 
+  float linear_seacher_window = 0.3;
+  float linear_seacher_step = 0.05;
+  float angular_seacher_window = 0.3;
+  float angular_seacher_step = 0.03;
+  private_nh.getParam("linear_seacher_window", linear_seacher_window);
+  private_nh.getParam("linear_seacher_step", linear_seacher_step);
+  private_nh.getParam("angular_seacher_window", angular_seacher_window);
+  private_nh.getParam("angular_seacher_step", angular_seacher_step);
+  
+  correlative_scan_matcher_->setSearchParameters(linear_seacher_window, 
+                                                linear_seacher_step, 
+                                                angular_seacher_window, 
+                                                angular_seacher_step);
+
 }
 
 /** Update occupancy and log odds for a point
