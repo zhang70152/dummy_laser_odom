@@ -50,6 +50,16 @@ void correlativeScanMatcher::bruteForceSearch(const sensor_msgs::LaserScan& scan
 
 void correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta)
 {
+  // for(int i = 0; i < lookup_table_.size(); i++)
+  // {
+  //   if(lookup_table_[i]>0)
+  //   {
+  //     std::cout<<"initial:"<<i<<"  prob:"<<lookup_table_[i]<<std::endl;
+  //   }
+  // }
+
+
+
   vector<RotatedScan> rotated_scan_sets = generateRotationScan(scan, 0, 0, 0);
   vector<Candidate> candidates = generateLowestResolutionCell(rotated_scan_sets);
   
@@ -96,24 +106,37 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
   for(int i = 0; i < scan_in_grid.size(); i++)
   {
     //TODO: Condider boundry!
-    int offset = getPointIndex(candidate.x_offset, candidate.y_offset);
-    size_t point_index = scan_in_grid[i] + (size_t)offset;
+    int x,y;
+    indexToXY(scan_in_grid[i], x, y);
+    int cell_length = 1 << candidate.depth;
+    int cell_x = x / cell_length;
+    int cell_y = y / cell_length;
+    size_t cell_index = getCellIndex(cell_x + candidate.x_offset, cell_y + candidate.y_offset, candidate.depth);
 
-  
     std::vector<double>* lookup_table = getLayeredLookupTable(candidate.depth);
     if(lookup_table)
     {
-      if(!pointInMap(candidate.depth, point_index))
+      if(!pointInMap(candidate.depth, cell_index))
       {
-        //std::cout<<"Point out of boundry."<<std::endl;
+        std::cout<<"Point out of boundry."<<"depth:"<<candidate.depth<<" index: "<<scan_in_grid[i]<<" cell:"<<cell_index<<" lk table size:"<<lookup_table->size()<<std::endl;
         counter++;
         continue;
       }
-      score += (*lookup_table)[point_index];
+      double prob = (*lookup_table)[cell_index];
+      score = score + prob;
+      //std::cout<<"cell_index:"<<cell_index<<" score"<<score<<" once:"<<prob<<std::endl;
     }
-    
+    if(candidate.depth!=0)
+    {
+      //std::cout<<"depth:"<<candidate.depth<<"  score :"<<score<<std::endl;
+    }
+
   }
-  //std::cout<<"invalid point number:"<<counter<<std::endl;
+  if(counter>50)
+  {
+    std::cout<<"invalid point number:"<<counter<<std::endl;
+  }
+
   candidate.score = score;
 }
 
@@ -160,10 +183,7 @@ Candidate correlativeScanMatcher::recursiveSearch(
 
 
 
-int correlativeScanMatcher::getPointIndex(int x, int y)
-{
-  return  x + y * map_width_;
-}
+
 
 vector<RotatedScan> correlativeScanMatcher::generateRotationScan(const sensor_msgs::LaserScan& scan, float x, float y, float theta)
 {
@@ -232,31 +252,41 @@ vector<Candidate> correlativeScanMatcher::generateAllCanditate(const vector<Rota
 void correlativeScanMatcher::updateMapLookUpTable(const std::vector<double>& lookup_table)
 {
       lookup_table_ = lookup_table;
-      updateLayeredLookupTable();
+      updateCellsLookupTable();
 }
 
 
-void correlativeScanMatcher::updateLayeredLookupTable()
+void correlativeScanMatcher::updateCellsLookupTable()
 {
   layered_lookup_table_[0] = &lookup_table_;
 
-  for(int i = 1; i <= max_depth_; i++)
+  for(int k = 1; k <= max_depth_; k++)
   {
     vector<double>* intermediate_look_up_table = new vector<double>();
-    int cell_length = 1 << i;
+    int cell_length = 1 << k;
     int cell_number = map_width_ / cell_length;
     for(int i = 0; i < cell_number; i++)
     {
       int start_y = i * cell_length;
+      if(i>0)
+      {
+        start_y--;
+      }
       for(int j = 0; j < cell_number; j++)
       {
         int start_x = j * cell_length;
-        double max_prop = findMaxLogInCell(i, start_x, start_y, cell_length);
+        if(j>0)
+        {
+          start_x--;
+        }
+        double max_prop = findMaxLogInCell(k, start_x, start_y, cell_length);
+
+        //std::cout<<"START X:"<<start_x<<" START Y"<<start_y<<" cells length:"<<cell_length<<"   DEPTH"<<k<<" max prob"<<max_prop<<std::endl;
         intermediate_look_up_table->push_back(max_prop);
       }
     }
-    layered_lookup_table_[i] = intermediate_look_up_table;
-    std::cout<<"depth:"<<i<<" look up table size"<<layered_lookup_table_[i]->size()<<"cells length:"<<cell_length<<std::endl;
+    layered_lookup_table_[k] = intermediate_look_up_table;
+    //std::cout<<"depth:"<<i<<" look up table size"<<layered_lookup_table_[i]->size()<<"cells length:"<<cell_length<<std::endl;
   }
 
 
@@ -319,20 +349,28 @@ vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
 double correlativeScanMatcher::findMaxLogInCell(int depth, int start_x, int start_y, int cell_length)
 {
   double max_prop = LEAST_SCORE_NUMBER;
+  int counter = 0;
   for(int i = 0; i < cell_length; i++)
   {
     for(int j = 0; j < cell_length; j++)
     {
       size_t point_index =  getPointIndex(start_x + j, start_y + i);
-      if(pointInMap(depth, point_index))
+     
+      if(pointInMap(0, point_index))
       {
         if(lookup_table_[point_index] > max_prop)
         {
           max_prop = lookup_table_[point_index];
         }
+     
       }
+      else{
+         std::cout<<"invalid:"<<point_index<<std::endl;
+      }
+      counter++;
     }
   }
+
   return max_prop;
 }
 

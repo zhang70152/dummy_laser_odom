@@ -76,7 +76,15 @@ class correlativeScanMatcher
 
     Candidate recursiveSearch(int current_depth,  Candidate best_candidate, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets);
 
-    int getPointIndex(int x, int y);
+    int getPointIndex(int x, int y)
+    {
+      return  x + y * map_width_;
+    }
+    int getCellIndex(int x, int y, int depth)
+    {
+       int cell_length = 1 << depth;
+       return  x + y * cell_length;
+    }
 
     bool pointInMap(int depth, size_t index)
     {
@@ -91,7 +99,7 @@ class correlativeScanMatcher
       }
     }
 
-    void updateLayeredLookupTable();
+    void updateCellsLookupTable();
 
     vector<Candidate> generateLowestResolutionCell(const vector<RotatedScan>& rotated_scan_sets);
 
