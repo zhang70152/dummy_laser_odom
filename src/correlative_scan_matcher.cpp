@@ -58,20 +58,23 @@ void correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan&
     scoreCandidate(candidates[i], rotated_scan_sets);
   }
  
-  Candidate best_candidate;
+  Candidate best_candidate_in_low_resolution;
   double max_score = LEAST_SCORE_NUMBER;
   for(int i = 0; i < candidates.size(); i++)
   {
     if(candidates[i].score > max_score)
     {
       max_score = candidates[i].score;
-      best_candidate.x_offset = candidates[i].x_offset;
-      best_candidate.y_offset = candidates[i].y_offset;
-      best_candidate.orientation = candidates[i].orientation;
-      best_candidate.score = candidates[i].score;
+      best_candidate_in_low_resolution.x_offset = candidates[i].x_offset;
+      best_candidate_in_low_resolution.y_offset = candidates[i].y_offset;
+      best_candidate_in_low_resolution.orientation = candidates[i].orientation;
+      best_candidate_in_low_resolution.score = candidates[i].score;
     }
   }
-    
+  int start_x = best_candidate_in_low_resolution.x_offset * 2;
+  int start_y = best_candidate_in_low_resolution.y_offset * 2;
+  Candidate best_candidate = recursiveSearch(best_candidate_in_low_resolution, start_x, start_y, rotated_scan_sets);
+   
   x = best_candidate.x_offset * resolution_;
   y = best_candidate.y_offset * resolution_;
   theta = best_candidate.orientation;
@@ -107,14 +110,37 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
 }
 
 
-bool correlativeScanMatcher::recursiveSearch(int current_depth, int start_x, int start_y)
+Candidate correlativeScanMatcher::recursiveSearch(
+  int current_depth, Candidate best_candidate, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets)
 {
-  if(current_depth>max_depth_)
+  if(current_depth==0)
   {
     return false;
   }
   else{
+    vector<Candidate> higher_resolution_candidates = generateLayeredCandidates(current_depth,  start_x,  start_y, rotated_scan_sets);
+    scoreCandidate(higher_resolution_candidates, rotated_scan_sets);
+  
+    Candidate best_candidate;
+    double max_score = LEAST_SCORE_NUMBER;
+    for(int i = 0; i < candidates.size(); i++)
+    {
+      if(candidates[i].score > max_score)
+      {
+        max_score = candidates[i].score;
+        best_candidate.scan_index = candidates[i].scan_index;
+        best_candidate.depth = candidates[i].depth;
+        best_candidate.x_offset = candidates[i].x_offset;
+        best_candidate.y_offset = candidates[i].y_offset;
+        best_candidate.orientation = candidates[i].orientation;
+        best_candidate.score = candidates[i].score;
+      }
+    }
 
+    start_x = best_candidate.x_offset * 2;
+    start_y = best_candidate.y_offset * 2;
+    best_candidate = recursiveSearch(current_depth-1, best_candidate, start_x, start_y, rotated_scan_sets);
+    return best_candidate;
   }
 }
 
@@ -254,28 +280,25 @@ vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
   int depth, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets)
 {
   vector<Candidate> layered_candidates;
-  int step_size = linear_search_window_ /  linear_search_step_;
-  int cell_length = 1 << (max_depth_ - depth);
-  int cell_number = map_width_ / cell_length;
 
-  for(int i = -step_size; i < step_size; i = i+cell_length)
+  for(int i = 0; i < 2; i++)
   {
-    for(int j = -step_size; j < step_size; j = j+cell_length)
+    for(int j = 0; j < 2; j++)
     {
       for(int k = 0; k < rotated_scan_sets.size(); ++k)
       {
         Candidate new_candidate;
         new_candidate.scan_index = rotated_scan_sets[k].index;
-        new_candidate.depth = max_depth_;
+        new_candidate.depth = depth;
         new_candidate.x_offset = start_x + j;
         new_candidate.y_offset = start_y + i;
         new_candidate.orientation = rotated_scan_sets[k].rotated_angle;
         new_candidate.score = LEAST_SCORE_NUMBER;
-        low_resolution_candidates.push_back(new_candidate);
+        layered_candidates.push_back(new_candidate);
       }
     }
   }
-  return low_resolution_candidates; 
+  return layered_candidates; 
 }
 
 

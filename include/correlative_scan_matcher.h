@@ -74,7 +74,7 @@ class correlativeScanMatcher
 
     void scoreCandidate(Candidate& candidate, const vector<RotatedScan>& rotated_scan_sets);
 
-    bool recursiveSearch(int current_depth, int start_x, int start_y);
+    Candidate recursiveSearch(int current_depth,  Candidate best_candidate, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets);
 
     int getPointIndex(int x, int y);
 
