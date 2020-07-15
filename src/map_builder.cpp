@@ -102,7 +102,7 @@ MapBuilder::MapBuilder(int width, int height, double resolution) :
   private_nh.getParam("linear_seacher_step", linear_seacher_step);
   private_nh.getParam("angular_seacher_window", angular_seacher_window);
   private_nh.getParam("angular_seacher_step", angular_seacher_step);
-  
+
   correlative_scan_matcher_->setSearchParameters(linear_seacher_window, 
                                                 linear_seacher_step, 
                                                 angular_seacher_window, 
@@ -190,7 +190,7 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
 
   auto t_start = std::chrono::high_resolution_clock::now();
   correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
-  correlative_scan_matcher_->bruteForceSearch(scan, x, y, theta);
+  correlative_scan_matcher_->multiResolutionSearch(scan, x, y, theta);
   auto t_end = std::chrono::high_resolution_clock::now();
   double elapse_time_es = std::chrono::duration<double, std::milli>(t_end - t_start).count();
   std::cout<<"search time:"<<elapse_time_es<<std::endl;

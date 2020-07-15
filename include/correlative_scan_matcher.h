@@ -5,7 +5,7 @@
 #include <exception>
 #include <string>
 #include <vector>
-
+#include <map>
 #include <ros/ros.h>
 #include <angles/angles.h>
 #include <sensor_msgs/LaserScan.h>
@@ -20,9 +20,16 @@ namespace correlative_scan_math
 using std::vector;
 
 typedef std::vector<size_t>  ScanInGrid;
-//typedef std::map<float, ScanInGrid > CandidateSets;
-struct Candidate {
+
+struct RotatedScan {
+  int index;
+  double rotated_angle;
   ScanInGrid discretize_scan;
+};
+
+struct Candidate {
+  int scan_index;
+  int depth;
   int x_offset = 0;
   int y_offset = 0;
   double x = 0.;
@@ -45,12 +52,11 @@ class correlativeScanMatcher
     {
       
     }
-    void updateMapLookUpTable(const std::vector<double>& lookup_table)
-    {
-      lookup_table_ = lookup_table;
-    }
+    void updateMapLookUpTable(const std::vector<double>& lookup_table);
 
     void bruteForceSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
+
+    void multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
 
     void setSearchParameters(float linear_search_window, float linear_search_step, float angular_search_window, float angular_search_step)
     {
@@ -62,19 +68,56 @@ class correlativeScanMatcher
 
   private:
 
-    vector<Candidate> generateRotationScan(const sensor_msgs::LaserScan& scan, float x, float y, float theta);
+    vector<RotatedScan> generateRotationScan(const sensor_msgs::LaserScan& scan, float x, float y, float theta);
 
-    void scoreCandidate(Candidate& candidate);
+    vector<Candidate> generateAllCanditate(const vector<RotatedScan>& rotated_scan_sets);
+
+    void scoreCandidate(Candidate& candidate, const vector<RotatedScan>& rotated_scan_sets);
+
+    bool recursiveSearch(int current_depth, int start_x, int start_y);
 
     int getPointIndex(int x, int y);
 
-    bool pointInMap(size_t index)
+    bool pointInMap(int depth, size_t index)
     {
-      return index < map_width_ * map_height_;
+      std::map<int, vector<double>*>::iterator it = layered_lookup_table_.find(depth);
+      if(it != layered_lookup_table_.end())
+      {
+        vector<double>* lookup_table = it->second;
+        return index < lookup_table->size();
+      }
+      else{
+        return false;
+      }
+    }
+
+    void updateLayeredLookupTable();
+
+    vector<Candidate> generateLowestResolutionCell(const vector<RotatedScan>& rotated_scan_sets);
+
+    vector<Candidate> generateLayeredCandidates(int depth, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets);
+
+    double findMaxLogInCell(int depth, int start_x, int start_y, int cell_length);
+
+    void indexToXY(size_t index, int& x, int& y);
+
+    std::vector<double>* getLayeredLookupTable(int depth)
+    {
+      std::map<int, vector<double>*>::iterator it = layered_lookup_table_.find(depth);
+      if(it != layered_lookup_table_.end())
+      {
+        vector<double>* lookup_table = it->second;
+        return lookup_table;
+      }
+      else{
+        return 0;
+      }
     }
 
     std::vector<double> lookup_table_;  //!< log odds ratios for the binary Bayes filter
                                     //!< log_odd = log(p(x) / (1 - p(x)))
+
+    std::map<int, vector<double>*> layered_lookup_table_;
 
     int map_width_;
     int map_height_;
@@ -85,6 +128,8 @@ class correlativeScanMatcher
     float linear_search_step_;
     float angular_search_window_; 
     float angular_search_step_;
+
+    int max_depth_;
 };
 
 
