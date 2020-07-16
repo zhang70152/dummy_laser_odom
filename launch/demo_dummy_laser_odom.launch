@@ -14,9 +14,12 @@
 
     <param name="angular_seacher_window" type="double" value="0.3" />
     <param name="angular_seacher_step" type="double" value="0.03" />
-    <remap from="/dummy_laser_odom_node/scan" to="right_scan" />
+
+    <param name="max_depth" type="int" value="3" />
+
+    <remap from="/dummy_laser_odom_node/scan" to="center_scan_filtered" />
   </node>
 
-  <node name="playbag" pkg="rosbag" type="play" args="--clock $(find dummy_laser_odom)/bag/rl.bag"/>
+  <node name="playbag" pkg="rosbag" type="play" args="--clock $(find dummy_laser_odom)/bag/test.bag"/>
 
 </launch>

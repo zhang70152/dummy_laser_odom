@@ -13,7 +13,7 @@
 
 
 
-#define LEAST_SCORE_NUMBER -9999.0
+#define LEAST_SCORE_NUMBER 0
 namespace correlative_scan_math
 {
 
@@ -40,6 +40,17 @@ struct Candidate {
 
   bool operator<(const Candidate& other) const {return score < other.score;}
   bool operator>(const Candidate& other) const {return score > other.score;}
+  void operator=(const Candidate& other)  
+  {
+    scan_index = other.x_offset;
+    depth = other.x_offset;
+    x_offset = other.x_offset;
+    y_offset = other.y_offset;
+    x = other.x;
+    y = other.y;
+    orientation = other.orientation;
+    score = other.score;
+  }
 };
 
 
@@ -58,19 +69,26 @@ class correlativeScanMatcher
 
     void multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
 
-    void setSearchParameters(float linear_search_window, float linear_search_step, float angular_search_window, float angular_search_step)
+    void setSearchParameters(float linear_search_window, float linear_search_step, float angular_search_window, float angular_search_step, int max_depth)
     {
       linear_search_window_ = linear_search_window;
       linear_search_step_ = linear_search_step;
       angular_search_window_ = angular_search_window; 
       angular_search_step_ = angular_search_step;
+      max_depth_ = max_depth;
+    }
+
+    void resetLastResult()
+    {
+      last_x_ = 0;
+      last_y_ = 0;
+      last_theta_ = 0;
     }
 
   private:
 
     vector<RotatedScan> generateRotationScan(const sensor_msgs::LaserScan& scan, float x, float y, float theta);
 
-    vector<Candidate> generateAllCanditate(const vector<RotatedScan>& rotated_scan_sets);
 
     void scoreCandidate(Candidate& candidate, const vector<RotatedScan>& rotated_scan_sets);
 
@@ -83,7 +101,8 @@ class correlativeScanMatcher
     int getCellIndex(int x, int y, int depth)
     {
        int cell_length = 1 << depth;
-       return  x + y * cell_length;
+       int cell_number = map_width_ / cell_length;
+       return  x + y * cell_number;
     }
 
     bool pointInMap(int depth, size_t index)
@@ -107,7 +126,11 @@ class correlativeScanMatcher
 
     double findMaxLogInCell(int depth, int start_x, int start_y, int cell_length);
 
-    void indexToXY(size_t index, int& x, int& y);
+    void indexToXY(size_t index, int& x, int& y)
+    {
+      y = index / map_width_;
+      x = index % map_width_;
+    }
 
     std::vector<double>* getLayeredLookupTable(int depth)
     {
@@ -138,6 +161,9 @@ class correlativeScanMatcher
     float angular_search_step_;
 
     int max_depth_;
+    float last_x_;
+    float last_y_;
+    float last_theta_;
 };
 
 

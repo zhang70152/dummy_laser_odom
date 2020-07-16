@@ -17,7 +17,7 @@
 #include <map_ray_caster.h>
 #include <correlative_scan_matcher.h>
 
-#define LEAST_SCORE_NUMBER -9999.0
+
 namespace local_map
 {
 

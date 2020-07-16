@@ -98,15 +98,17 @@ MapBuilder::MapBuilder(int width, int height, double resolution) :
   float linear_seacher_step = 0.05;
   float angular_seacher_window = 0.3;
   float angular_seacher_step = 0.03;
+  int max_depth = 0;
   private_nh.getParam("linear_seacher_window", linear_seacher_window);
   private_nh.getParam("linear_seacher_step", linear_seacher_step);
   private_nh.getParam("angular_seacher_window", angular_seacher_window);
   private_nh.getParam("angular_seacher_step", angular_seacher_step);
-
+  private_nh.getParam("max_depth", max_depth);
   correlative_scan_matcher_->setSearchParameters(linear_seacher_window, 
                                                 linear_seacher_step, 
                                                 angular_seacher_window, 
-                                                angular_seacher_step);
+                                                angular_seacher_step,
+                                                max_depth);
 
 }
 
@@ -193,12 +195,13 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
   correlative_scan_matcher_->multiResolutionSearch(scan, x, y, theta);
   auto t_end = std::chrono::high_resolution_clock::now();
   double elapse_time_es = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-  std::cout<<"search time:"<<elapse_time_es<<std::endl;
+  //std::cout<<"search time:"<<elapse_time_es<<std::endl;
  
-  if(fabs(x)>0.2 || fabs(y)>0.2 || fabs(theta)>0.2)
+  if(fabs(x)> 0.21 || fabs(y)>0.21 || fabs(theta)>0.21)
   {
     update = true;
-    std::cout<<"delta x:"<<x<<" delta y:"<<y<<" delta theta"<<theta<<std::endl;
+    correlative_scan_matcher_->resetLastResult();
+    //std::cout<<"delta x:"<<x<<" delta y:"<<y<<" delta theta"<<theta<<std::endl;
   }
 
   if(update)
