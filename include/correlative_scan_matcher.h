@@ -65,9 +65,7 @@ class correlativeScanMatcher
     }
     void updateMapLookUpTable(const std::vector<double>& lookup_table);
 
-    void bruteForceSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
-
-    void multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
+    bool multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
 
     void setSearchParameters(float linear_search_window, float linear_search_step, float angular_search_window, float angular_search_step, int max_depth)
     {
@@ -164,6 +162,7 @@ class correlativeScanMatcher
     float last_x_;
     float last_y_;
     float last_theta_;
+    int fail_counter_;
 };
 
 

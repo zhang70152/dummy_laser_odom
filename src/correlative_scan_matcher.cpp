@@ -20,38 +20,11 @@ correlativeScanMatcher::correlativeScanMatcher(int map_width, int map_height, fl
   last_x_ = 0;
   last_y_ = 0;
   last_theta_ = 0;
-}
-
-void correlativeScanMatcher::bruteForceSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta)
-{
-  vector<Candidate> result_candidates;
-
-
-  //const Candidate& best_candidate = *std::max(result_candidates.begin(), result_candidates.end());
-  Candidate best_candidate;
-  double max_score = LEAST_SCORE_NUMBER;
-  for(int i = 0; i < result_candidates.size(); i++)
-  {
-    if(result_candidates[i].score > max_score)
-    {
-      max_score = result_candidates[i].score;
-      best_candidate.x_offset = result_candidates[i].x_offset;
-      best_candidate.y_offset = result_candidates[i].y_offset;
-      best_candidate.orientation = result_candidates[i].orientation;
-      best_candidate.score = result_candidates[i].score;
-    }
-  }
-    
-  x = best_candidate.x_offset * resolution_;
-  y = best_candidate.y_offset * resolution_;
-  theta = best_candidate.orientation;
-
-  //std::cout<<"x: "<<best_candidate.x_offset<<"  y:"<<best_candidate.y_offset<<" theta:"<<best_candidate.orientation<<" score:"<<best_candidate.score<<std::endl;
-  //std::cout<<"x: "<<x<<"  y:"<<y<<" theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
+  fail_counter_ = 0;
 }
 
 
-void correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta)
+bool correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta)
 {
 
 
@@ -77,30 +50,45 @@ void correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan&
       best_candidate_in_low_resolution.score = candidates[i].score;
     }
   }
+  std::cout<<"search cells num:"<<candidates.size()/rotated_scan_sets.size()<<std::endl;
   //std::cout<<"low resolution best candidate x:"<<best_candidate_in_low_resolution.x_offset<<" y:"<<best_candidate_in_low_resolution.y_offset<<std::endl;
   int start_x = best_candidate_in_low_resolution.x_offset * 2;
   int start_y = best_candidate_in_low_resolution.y_offset * 2;
-  //std::cout<<"start x:"<<start_x<<" start y:"<<start_y<<std::endl;
+  std::cout<<"low resolution offset_x:"<<best_candidate_in_low_resolution.x_offset
+           <<" offset_y:"<<best_candidate_in_low_resolution.y_offset<<std::endl;
   Candidate best_candidate = recursiveSearch(max_depth_-1, best_candidate_in_low_resolution, start_x, start_y, rotated_scan_sets);
 
   x = best_candidate.x_offset * resolution_;
   y = best_candidate.y_offset * resolution_;
   theta = best_candidate.orientation;
 
-  if(fabs(theta - last_theta_)>0.15)
+  if(fabs(x - last_x_)>0.31 || fabs(y - last_y_)>0.31 || fabs(theta - last_theta_)>0.21 )
   {
+    std::cout<<" fail to match! "
+             <<" delta x: "<<(double)fabs(x - last_x_)
+             <<" delta y: "<<fabs(y - last_y_)
+             <<" delta theta: "<<(double)fabs(theta - last_theta_)
+             <<" max score:"<<max_score<<std::endl;
     x = 0;
     y = 0;
     theta = 0;
-    std::cout<<"large delta theta: "<<(double)fabs(theta - last_theta_)<<std::endl;
+    fail_counter_++;
   }
   else{
     last_x_ = x;
     last_y_ = y;
     last_theta_ = theta;
+    fail_counter_ = 0;
   }
   
-  std::cout<<"x: "<<x<<"  y:"<<y<<" theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
+  //std::cout<<"x: "<<x<<"  y:"<<y<<" theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
+  if(fail_counter_>5)
+  {
+    return false;
+  }
+  else{
+    return true;
+  }
 }
 
 
@@ -239,7 +227,7 @@ vector<Candidate> correlativeScanMatcher::generateLowestResolutionCell(const vec
       {
         Candidate new_candidate;
         new_candidate.scan_index = rotated_scan_sets[k].index;
-        new_candidate.depth = 0;
+        new_candidate.depth = max_depth_;
         new_candidate.x_offset = j;
         new_candidate.y_offset = i;
         new_candidate.orientation = rotated_scan_sets[k].rotated_angle;
@@ -342,7 +330,7 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
       double log_odds = (*lookup_table)[cell_index];
       double prob = (1 - 1 / (1 + std::exp(log_odds))) ;
       score = score + prob;
-      if(candidate.depth == 0)
+      if(candidate.depth == max_depth_)
       {
         // std::cout<<"x:"<<x<<" y:"<<y<<" cell_index:"<<cell_index<<" point index"<<point_index<<" i:"<<scan_in_grid[i]<<std::endl;
         // std::cout<<"offset x:"<<candidate.x_offset<<" offset y:"<<candidate.y_offset<<std::endl;
@@ -361,6 +349,8 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
   }
 
   candidate.score = score;
+  //std::cout<<"offset x:"<<candidate.x_offset<<" offset y:"<<candidate.y_offset<<" score"<<score<<std::endl;
+  
 }
 
 

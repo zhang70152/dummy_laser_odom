@@ -192,7 +192,10 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
 
   auto t_start = std::chrono::high_resolution_clock::now();
   correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
-  correlative_scan_matcher_->multiResolutionSearch(scan, x, y, theta);
+  if(!correlative_scan_matcher_->multiResolutionSearch(scan, x, y, theta))
+  {
+    update = true;
+  }
   auto t_end = std::chrono::high_resolution_clock::now();
   double elapse_time_es = std::chrono::duration<double, std::milli>(t_end - t_start).count();
   //std::cout<<"search time:"<<elapse_time_es<<std::endl;
