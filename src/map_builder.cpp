@@ -180,6 +180,7 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
   if(first_scan_)
   {
     updateMap(scan, 0, 0, 0);
+    correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
     first_scan_ = false;
     return;
   }
@@ -191,24 +192,24 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
   double x,y,theta;
 
   auto t_start = std::chrono::high_resolution_clock::now();
-  correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
+  
   if(!correlative_scan_matcher_->multiResolutionSearch(scan, x, y, theta))
   {
     update = true;
   }
   auto t_end = std::chrono::high_resolution_clock::now();
   double elapse_time_es = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-  //std::cout<<"search time:"<<elapse_time_es<<std::endl;
- 
-  if(fabs(x)> 0.21 || fabs(y)>0.21 || fabs(theta)>0.21)
+  std::cout<<"search time:"<<elapse_time_es<<std::endl;
+  std::cout<<"-----------------------------------------------------------------"<<std::endl;
+  if(fabs(x)> 0.2 || fabs(y)>0.2 || fabs(theta)>0.15)
   {
     update = true;
     correlative_scan_matcher_->resetLastResult();
-    //std::cout<<"delta x:"<<x<<" delta y:"<<y<<" delta theta"<<theta<<std::endl;
   }
 
   if(update)
   {
+
     tf::Transform delta_transform;
     delta_transform.setOrigin(tf::Vector3(x, y, 0.0));
     tf::Quaternion q;
@@ -217,18 +218,19 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
 
     map_to_laser_ = map_to_laser_ * delta_transform;
 
-    //std::cout<<"map x:"<<map_to_laser_.getOrigin().x()<<" delta y:"<<map_to_laser_.getOrigin().y()<<" map theta"<<theta<<std::endl;
 
     //reset map
     map_.data.assign(map_width_ * map_height_, -1);  // Fill with "unknown" occupancy.
     log_odds_.assign(map_width_ * map_height_, 0);
 
     const bool move = updateMap(scan, 0, 0, 0);
+    correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
 
     tf::Transform zero_transform;
     zero_transform.setIdentity();
     tr_broadcaster_.sendTransform(tf::StampedTransform(zero_transform, scan.header.stamp, scan.header.frame_id, map_frame_id_));
     tr_broadcaster_.sendTransform(tf::StampedTransform(map_to_laser_.inverse(), scan.header.stamp, scan.header.frame_id, "laser_odom"));
+    
     //const bool move = updateMap(scan, 0, 0, 0);
   }
   else{

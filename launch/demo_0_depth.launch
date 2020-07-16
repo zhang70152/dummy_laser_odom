@@ -1,0 +1,25 @@
+<launch>
+  <param name="/use_sim_time" value="true" />
+
+  <node name="rviz" pkg="rviz" type="rviz" required="true"
+    args="-d $(find dummy_laser_odom)/rviz_config/laser_odom.rviz" />
+
+  <node pkg="dummy_laser_odom" name="dummy_laser_odom_node" type="dummy_laser_odom" output="screen">
+    <param name="map_width" type="double" value="800" />
+    <param name="map_height" type="double" value="800" />
+    <param name="map_resolution" type="double" value="0.05" />
+
+    <param name="linear_seacher_window" type="double" value="0.3" />
+    <param name="linear_seacher_step" type="double" value="0.05" />
+
+    <param name="angular_seacher_window" type="double" value="0.3" />
+    <param name="angular_seacher_step" type="double" value="0.03" />
+
+    <param name="max_depth" type="int" value="0" />
+
+    <remap from="/dummy_laser_odom_node/scan" to="center_scan_filtered" />
+  </node>
+
+  <node name="playbag" pkg="rosbag" type="play" args="--clock $(find dummy_laser_odom)/bag/test.bag"/>
+
+</launch>

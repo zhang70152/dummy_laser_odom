@@ -44,31 +44,34 @@ bool correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan&
     if(candidates[i].score > max_score)
     {
       max_score = candidates[i].score;
+      best_candidate_in_low_resolution.scan_index = candidates[i].scan_index;
       best_candidate_in_low_resolution.x_offset = candidates[i].x_offset;
       best_candidate_in_low_resolution.y_offset = candidates[i].y_offset;
       best_candidate_in_low_resolution.orientation = candidates[i].orientation;
       best_candidate_in_low_resolution.score = candidates[i].score;
     }
   }
-  std::cout<<"search cells num:"<<candidates.size()/rotated_scan_sets.size()<<std::endl;
-  //std::cout<<"low resolution best candidate x:"<<best_candidate_in_low_resolution.x_offset<<" y:"<<best_candidate_in_low_resolution.y_offset<<std::endl;
+  //std::cout<<"search cells num:"<<candidates.size()/rotated_scan_sets.size()<<std::endl;
+  
   int start_x = best_candidate_in_low_resolution.x_offset * 2;
   int start_y = best_candidate_in_low_resolution.y_offset * 2;
-  std::cout<<"low resolution offset_x:"<<best_candidate_in_low_resolution.x_offset
-           <<" offset_y:"<<best_candidate_in_low_resolution.y_offset<<std::endl;
+   std::cout<<"low resolution offset_x:"<<best_candidate_in_low_resolution.x_offset
+            <<" offset_y:"<<best_candidate_in_low_resolution.y_offset
+            <<" orientation:"<<best_candidate_in_low_resolution.orientation<<std::endl;
   Candidate best_candidate = recursiveSearch(max_depth_-1, best_candidate_in_low_resolution, start_x, start_y, rotated_scan_sets);
 
   x = best_candidate.x_offset * resolution_;
   y = best_candidate.y_offset * resolution_;
   theta = best_candidate.orientation;
 
-  if(fabs(x - last_x_)>0.31 || fabs(y - last_y_)>0.31 || fabs(theta - last_theta_)>0.21 )
+  if(fabs(x - last_x_)>0.31 || fabs(y - last_y_)>0.31 || fabs(theta - last_theta_)>0.2 )
   {
-    std::cout<<" fail to match! "
+    std::cout<<" large displacement! fail to match! "
              <<" delta x: "<<(double)fabs(x - last_x_)
              <<" delta y: "<<fabs(y - last_y_)
              <<" delta theta: "<<(double)fabs(theta - last_theta_)
              <<" max score:"<<max_score<<std::endl;
+    //set zero increment for "failed search".
     x = 0;
     y = 0;
     theta = 0;
@@ -81,7 +84,7 @@ bool correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan&
     fail_counter_ = 0;
   }
   
-  //std::cout<<"x: "<<x<<"  y:"<<y<<" theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
+  std::cout<<"final x: "<<x<<"final  y:"<<y<<" final theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
   if(fail_counter_>5)
   {
     return false;
@@ -109,21 +112,19 @@ Candidate correlativeScanMatcher::recursiveSearch(
     }
     Candidate best_candidate;
     double max_score = LEAST_SCORE_NUMBER;
-    int best_index = -1;
     for(int i = 0; i < higher_resolution_candidates.size(); i++)
     {
       if(higher_resolution_candidates[i].score > max_score)
       {
-        best_index = i;
         max_score = higher_resolution_candidates[i].score;
         best_candidate = higher_resolution_candidates[i];
       }
-      if(current_depth == 0)
-      {
-        //std::cout<<" the score"<<higher_resolution_candidates[i].score<<std::endl;
-      }
     }
-    std::cout<<"candidate num"<<higher_resolution_candidates.size()<<" depth:"<<current_depth<<" best score"<<max_score<<" index:"<<best_index<<std::endl;
+    std::cout<<"candidate num"<<higher_resolution_candidates.size()
+    <<" depth:"<<current_depth<<" best score:"<<max_score
+    <<" x_offset:"<<best_candidate.x_offset<<" y_offset:"<<best_candidate.y_offset
+    <<" orientation:"<<best_candidate.orientation
+    <<" max_score:"<< best_candidate.score<<std::endl;
     start_x = best_candidate.x_offset * 2;
     start_y = best_candidate.y_offset * 2;
     best_candidate = recursiveSearch(current_depth-1, best_candidate, start_x, start_y, rotated_scan_sets);
