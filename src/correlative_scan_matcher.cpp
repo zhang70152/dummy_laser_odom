@@ -324,7 +324,7 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
     {
       if(!pointInMap(candidate.depth, cell_index))
       {
-        std::cout<<"Point out of boundry."<<"depth:"<<candidate.depth<<" index: "<<scan_in_grid[i]<<" cell:"<<cell_index<<" lk table size:"<<lookup_table->size()<<std::endl;
+        //std::cout<<"Point out of boundry."<<"depth:"<<candidate.depth<<" index: "<<scan_in_grid[i]<<" cell:"<<cell_index<<" lk table size:"<<lookup_table->size()<<std::endl;
         counter++;
         continue;
       }
