@@ -120,8 +120,8 @@ Candidate correlativeScanMatcher::recursiveSearch(
         best_candidate = higher_resolution_candidates[i];
       }
     }
-    std::cout<<"candidate num"<<higher_resolution_candidates.size()
-    <<" depth:"<<current_depth<<" best score:"<<max_score
+    std::cout<<"candidate cells num:"<<higher_resolution_candidates.size()/rotated_scan_sets.size()
+    <<" depth:"
     <<" x_offset:"<<best_candidate.x_offset<<" y_offset:"<<best_candidate.y_offset
     <<" orientation:"<<best_candidate.orientation
     <<" max_score:"<< best_candidate.score<<std::endl;
@@ -189,17 +189,17 @@ void correlativeScanMatcher::updateCellsLookupTable()
     for(int i = 0; i < cell_number; i++)
     {
       int start_y = i * cell_length;
-      if(i>0)
-      {
-        start_y--;
-      }
+      // if(i>0)  // Why doing this?!
+      // {
+      //   start_y--;
+      // }
       for(int j = 0; j < cell_number; j++)
       {
         int start_x = j * cell_length;
-        if(j>0)
-        {
-          start_x--;
-        }
+        // if(j>0) // Why doing this?!
+        // {
+        //   start_x--;
+        // }
         double max_prop = findMaxLogInCell(k, start_x, start_y, cell_length);
 
         //std::cout<<"START X:"<<start_x<<" START Y"<<start_y<<" cells length:"<<cell_length<<"   DEPTH"<<k<<" max prob"<<max_prop<<std::endl;
@@ -245,6 +245,21 @@ vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
   int depth, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets)
 {
   vector<Candidate> layered_candidates;
+
+  int x_min_bound = 0;
+  int x_max_bound = 0;
+  int y_min_bound = 0;
+  int y_max_bound = 0;
+  if(start_x < 0)
+  {
+    x_min_bound = -2;
+    x_max_bound = -1;
+  }
+  if(start_y < 0)
+  {
+    y_min_bound = -2;
+    y_max_bound = -1;
+  }
 
   for(int i = 0; i < 2; i++)
   {
