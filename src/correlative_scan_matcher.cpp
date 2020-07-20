@@ -27,8 +27,11 @@ correlativeScanMatcher::correlativeScanMatcher(int map_width, int map_height, fl
 bool correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta)
 {
 
-
+  //1.rotate scan in defined angle range and discretize them in to grid representation.
   vector<RotatedScan> rotated_scan_sets = generateRotationScan(scan, 0, 0, 0);
+
+
+  //2.Get candidate for lowest resolution cells and find best candidate from them.
   vector<Candidate> candidates = generateLowestResolutionCell(rotated_scan_sets);
   
   for(int i = 0; i < candidates.size(); i++)
@@ -51,19 +54,23 @@ bool correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan&
       best_candidate_in_low_resolution.score = candidates[i].score;
     }
   }
-  //std::cout<<"search cells num:"<<candidates.size()/rotated_scan_sets.size()<<std::endl;
-  
+ 
   int start_x = best_candidate_in_low_resolution.x_offset * 2;
   int start_y = best_candidate_in_low_resolution.y_offset * 2;
    std::cout<<"low resolution offset_x:"<<best_candidate_in_low_resolution.x_offset
             <<" offset_y:"<<best_candidate_in_low_resolution.y_offset
             <<" orientation:"<<best_candidate_in_low_resolution.orientation<<std::endl;
+
+
+  // 3. Recursively search inside the best candidate in the lowest resolution cell, until the max depth reached(highest resolution).
   Candidate best_candidate = recursiveSearch(max_depth_-1, best_candidate_in_low_resolution, start_x, start_y, rotated_scan_sets);
 
   x = best_candidate.x_offset * resolution_;
   y = best_candidate.y_offset * resolution_;
   theta = best_candidate.orientation;
 
+
+  // 4. Do some sanity check. increment between two scan cant be too large otherwise suppose its a failed search.
   if(fabs(x - last_x_)>0.31 || fabs(y - last_y_)>0.31 || fabs(theta - last_theta_)>0.2 )
   {
     std::cout<<" large displacement! fail to match! "
@@ -285,7 +292,7 @@ vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
 double correlativeScanMatcher::findMaxLogInCell(int depth, int start_x, int start_y, int cell_length)
 {
   double max_prop = LEAST_SCORE_NUMBER;
-  int counter = 0;
+
   for(int i = 0; i < cell_length; i++)
   {
     for(int j = 0; j < cell_length; j++)
@@ -303,7 +310,6 @@ double correlativeScanMatcher::findMaxLogInCell(int depth, int start_x, int star
       else{
          std::cout<<"invalid:"<<point_index<<std::endl;
       }
-      counter++;
     }
   }
 
@@ -317,23 +323,24 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
   int counter = 0;
   for(int i = 0; i < scan_in_grid.size(); i++)
   {
-    //TODO: Condider boundry!
+
+
+    //1. For each point in scan, find column and row, convert to the corresponding resolution.  
     int x,y;
     indexToXY(scan_in_grid[i], x, y);
     int cell_length = 1 << candidate.depth;
     int cell_x = x / cell_length;
     int cell_y = y / cell_length;
 
+
+    //2. Add the candidate offset to the scan point.
     size_t cell_index = getCellIndex(cell_x + candidate.x_offset, cell_y + candidate.y_offset, candidate.depth);
 
     int offset = getPointIndex(candidate.x_offset, candidate.y_offset);
     size_t point_index = scan_in_grid[i] + (size_t)offset;
 
-    // if(candidate.depth == 0)
-    // {
-    //   std::cout<<"x:"<<x<<" y:"<<y<<" cell_index:"<<cell_index<<" point index"<<point_index<<" i:"<<scan_in_grid[i]<<std::endl;
-    //   std::cout<<"offset x:"<<candidate.x_offset<<" offset y:"<<candidate.y_offset<<std::endl;
-    // }
+
+    //3. Find the probablity of the scan point in current resolution cells lookup table and add to total score.
     std::vector<double>* lookup_table = getLayeredLookupTable(candidate.depth);
     if(lookup_table)
     {
@@ -344,15 +351,9 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
         continue;
       }
       double log_odds = (*lookup_table)[cell_index];
+      //convert log odds back into probablity.
       double prob = (1 - 1 / (1 + std::exp(log_odds))) ;
       score = score + prob;
-      if(candidate.depth == max_depth_)
-      {
-        // std::cout<<"x:"<<x<<" y:"<<y<<" cell_index:"<<cell_index<<" point index"<<point_index<<" i:"<<scan_in_grid[i]<<std::endl;
-        // std::cout<<"offset x:"<<candidate.x_offset<<" offset y:"<<candidate.y_offset<<std::endl;
-        // std::cout<<"cell_index:"<<cell_index<<" score"<<score<<" prob:"<<prob<<std::endl;
-      }
-      //std::cout<<"cell_index:"<<cell_index<<" score"<<score<<" once:"<<prob<<std::endl;
     }
     else{
       std::cout<<"Error: Cant find look up table!"<<std::endl;
