@@ -70,6 +70,7 @@ class MapBuilder
         updatePointOccupancy(occupied, *idx, occupancy, log_odds);
       }
     }
+
     // ROS parameters.
     double angle_resolution_;  //!< Angle resolution for the ray cast lookup (rad).
                                //!< Defaults to 0.25 deg equivalent.
@@ -107,11 +108,13 @@ class MapBuilder
 
     int map_width_;
     int map_height_;
-
+    double resolution_;
     bool first_scan_;
 
     tf::Transform map_to_laser_;
     correlative_scan_math::correlativeScanMatcher *correlative_scan_matcher_;
+    laser_geometry::LaserProjection projector_;
+
 };
 
 /* Return the offset from row and column number for a row-major array

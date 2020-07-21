@@ -40,7 +40,7 @@ MapBuilder::MapBuilder(int width, int height, double resolution) :
 
   map_width_ = width;
   map_height_ = height;
-
+  resolution_ = resolution;
 
   ros::NodeHandle private_nh("~");
   private_nh.getParam("angle_resolution", angle_resolution_);
@@ -177,99 +177,87 @@ void MapBuilder::updatePointOccupancy(bool occupied, size_t idx, vector<int8_t>&
  */
 void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
 {
-  if(first_scan_)
-  {
-    updateMap(scan, 0, 0, 0);
-    correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
-    first_scan_ = false;
+    if(first_scan_)
+    {
+        updateMap(scan, 0, 0, 0);
+        correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
+
+
+        sensor_msgs::PointCloud2 cloud_scan;
+        projector_.projectLaser(scan, cloud_scan);
+
+        // convert from pointcloud2 to pcl
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::fromROSMsg(cloud_scan, *pcl_cloud);  // PointCloud2 to pcl::PointCloud
+
+
+        tf::Transform current_tf;
+        current_tf.setOrigin(tf::Vector3(0.6, 0.5, 0.0));
+        tf::Quaternion rotation;
+        rotation.setRPY(0, 0, 0.0);
+        current_tf.setRotation(rotation);
+
+        pcl::PointCloud<pcl::PointXYZ> new_cloud;
+        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, current_tf);
+
+
+
+        double x,y,theta;
+
+        correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
+
+        first_scan_ = false;
+    }
     return;
-  }
 
-  bool update = false;
-
-
-
-  double x,y,theta;
-
-  auto t_start = std::chrono::high_resolution_clock::now();
-  
-  if(!correlative_scan_matcher_->multiResolutionSearch(scan, x, y, theta))
-  {
-    update = true;
-  }
-  auto t_end = std::chrono::high_resolution_clock::now();
-  double elapse_time_es = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-  std::cout<<"search time:"<<elapse_time_es<<std::endl;
-  std::cout<<"-----------------------------------------------------------------"<<std::endl;
-  if(fabs(x)> 0.2 || fabs(y)>0.2 || fabs(theta)>0.15)
-  {
-    update = true;
-    correlative_scan_matcher_->resetLastResult();
-  }
-
-  if(update)
-  {
-
-    tf::Transform delta_transform;
-    delta_transform.setOrigin(tf::Vector3(x, y, 0.0));
-    tf::Quaternion q;
-    q.setRPY(0, 0, theta);
-    delta_transform.setRotation(q);
-
-    map_to_laser_ = map_to_laser_ * delta_transform;
-
-
-    //reset map
-    map_.data.assign(map_width_ * map_height_, -1);  // Fill with "unknown" occupancy.
-    log_odds_.assign(map_width_ * map_height_, 0);
-
-    const bool move = updateMap(scan, 0, 0, 0);
-    correlative_scan_matcher_->updateMapLookUpTable(log_odds_);
-
-    tf::Transform zero_transform;
-    zero_transform.setIdentity();
-    tr_broadcaster_.sendTransform(tf::StampedTransform(zero_transform, scan.header.stamp, scan.header.frame_id, map_frame_id_));
-    tr_broadcaster_.sendTransform(tf::StampedTransform(map_to_laser_.inverse(), scan.header.stamp, scan.header.frame_id, "laser_odom"));
-    
-    //const bool move = updateMap(scan, 0, 0, 0);
-  }
-  else{
-    //do nothing
-  }
 
 }
 
 bool MapBuilder::updateMap(const sensor_msgs::LaserScan& scan, long int dx, long int dy, double theta)
 {
-  const bool has_moved = (dx != 0 || dy != 0);
-  const int ncol = map_.info.width;
+    const bool has_moved = (dx != 0 || dy != 0);
+    const int ncol = map_.info.width;
 
 
-  // Update occupancy.
-  int count = 0;
-  for (size_t i = 0; i < scan.ranges.size(); ++i)
-  {
-    
-    const double angle = angles::normalize_angle(scan.angle_min + i * scan.angle_increment + theta);
-    vector<size_t> pts;
-      const bool obstacle_in_map = getRayCastToObstacle(map_, angle, scan.ranges[i], pts);
-    if (pts.empty())
+    // Update occupancy.
+    const double xcenter = (map_width_ / 2) * resolution_;
+    const double ycenter = (map_height_ / 2) * resolution_;
+    int counter = 0;
+    for (size_t i = 0; i < scan.ranges.size(); ++i)
     {
-      continue;
-    }
-    if (obstacle_in_map)
-    {
-      // The last point is the point with obstacle.
-      const size_t last_pt = pts.back();
-      updatePointOccupancy(true, last_pt, map_.data, log_odds_);
-      pts.pop_back();
-      count++;
-    }
-    // The remaining points are in free space.
-    updatePointsOccupancy(false, pts, map_.data, log_odds_);
-  }
-  //std::cout<<"update obstacle num:"<<count<<std::endl;
-  return has_moved;
+        if(scan.ranges[i] < 0.01 || scan.ranges[i] > 30)
+        {
+          continue;
+        }
+        const double angle = angles::normalize_angle(scan.angle_min + i * scan.angle_increment + theta);
+
+        double x1 = scan.ranges[i] * std::cos(angle) + xcenter; // Can be negative
+        double y1 = scan.ranges[i] * std::sin(angle) + ycenter;
+        const long int xmap = lround(x1 / resolution_);
+        const long int ymap = lround(y1 / resolution_);
+        size_t point_index = (ymap * map_width_) + xmap;
+        log_odds_[point_index] = 1;
+        counter++;
+        //   vector<size_t> pts;
+        //     const bool obstacle_in_map = getRayCastToObstacle(map_, angle, scan.ranges[i], pts);
+        //   if (pts.empty())
+        //   {
+        //     continue;
+        //   }
+        //   if (obstacle_in_map)
+        //   {
+        //     // The last point is the point with obstacle.
+        //     const size_t last_pt = pts.back();
+        //     updatePointOccupancy(true, last_pt, map_.data, log_odds_);
+        //     pts.pop_back();
+        //     count++;
+        //   }
+        //   // The remaining points are in free space.
+        //   updatePointsOccupancy(false, pts, map_.data, log_odds_);
+      }
+      std::cout<<"total num:"<<counter<<std::endl;
+
+      return has_moved;
 }
 
 /** Return the pixel list by ray casting from map origin to map border, first obstacle.
@@ -315,6 +303,7 @@ bool MapBuilder::getRayCastToObstacle(const nav_msgs::OccupancyGrid& map, double
 
   return obstacle_in_map;
 }
+
 
 
 } // namespace local_map

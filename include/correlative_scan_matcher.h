@@ -8,10 +8,13 @@
 #include <map>
 #include <ros/ros.h>
 #include <angles/angles.h>
-#include <sensor_msgs/LaserScan.h>
+
 #include <nav_msgs/OccupancyGrid.h>
 
+#include "laser_geometry/laser_geometry.h"
 
+#include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 
 #define LEAST_SCORE_NUMBER 0
 namespace correlative_scan_math
@@ -65,7 +68,7 @@ class correlativeScanMatcher
     }
     void updateMapLookUpTable(const std::vector<double>& lookup_table);
 
-    bool multiResolutionSearch(const sensor_msgs::LaserScan& scan, double& x, double& y, double& theta);
+    bool multiResolutionSearch(const pcl::PointCloud<pcl::PointXYZ>& cloud_in, double& x, double& y, double& theta);
 
     void setSearchParameters(float linear_search_window, float linear_search_step, float angular_search_window, float angular_search_step, int max_depth)
     {
@@ -85,7 +88,7 @@ class correlativeScanMatcher
 
   private:
 
-    vector<RotatedScan> generateRotationScan(const sensor_msgs::LaserScan& scan, float x, float y, float theta);
+    vector<RotatedScan> generateRotationScan(const pcl::PointCloud<pcl::PointXYZ>& cloud_in, float x, float y, float theta);
 
 
     void scoreCandidate(Candidate& candidate, const vector<RotatedScan>& rotated_scan_sets);
