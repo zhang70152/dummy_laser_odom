@@ -67,8 +67,8 @@ bool correlativeScanMatcher::multiResolutionSearch(const pcl::PointCloud<pcl::Po
   // 3. Recursively search inside the best candidate in the lowest resolution cell, until the max depth reached(highest resolution).
   Candidate best_candidate = recursiveSearch(max_depth_-1, best_candidate_in_low_resolution, start_x, start_y, rotated_scan_sets);
 
-  x = best_candidate.x_offset * resolution_;
-  y = best_candidate.y_offset * resolution_;
+  double x1 = best_candidate.x_offset * resolution_;
+  double y1 = best_candidate.y_offset * resolution_;
   theta = best_candidate.orientation;
 
 
@@ -92,15 +92,19 @@ bool correlativeScanMatcher::multiResolutionSearch(const pcl::PointCloud<pcl::Po
 //     last_theta_ = theta;
 //     fail_counter_ = 0;
 //   }
-  
-  std::cout<<"final x: "<<x<<"  final  y:"<<y<<" final theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
-  if(fail_counter_>5)
-  {
-    return false;
-  }
-  else{
-    return true;
-  }
+    x = x1 * cos(theta) + y1 * sin(theta);
+    y = -x1 * sin(theta) + y1 * cos(theta);
+
+
+
+    std::cout<<"final x: "<<x<<"  final  y:"<<y<<" final theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
+    if(fail_counter_>5)
+    {
+        return false;
+    }
+    else{
+        return true;
+    }
 }
 
 
@@ -352,17 +356,6 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
         //2. Add the candidate offset to the scan point.
         size_t cell_index = getCellIndex(cell_x + candidate.x_offset, cell_y + candidate.y_offset, candidate.depth);
 
-        if(i == 400 && candidate.x_offset == 0 && candidate.y_offset == 0 && candidate.scan_index == 0.6/0.03)
-        {
-            // std::cout<<"x index:"<<x<<"  y index:"<<y<<std::endl;
-            // std::cout<<"cell_x:"<<cell_x<<" cell_y:"<<cell_y<<" offset x:"<<candidate.x_offset<<" offset_y:"<<candidate.y_offset
-            // <<" cell index"<<cell_index<<std::endl;
-
-            // std::cout<<"grid index:"<<scan_in_grid[i]<<std::endl;
-            // std::cout<<"x index:"<<x<<"  y index:"<<y <<" offset x:"<<candidate.x_offset<<" offset_y:"<<candidate.y_offset
-            // <<"cell index"<<cell_index<<std::endl;
-        }
-
 
         //3. Find the probablity of the scan point in current resolution cells lookup table and add to total score.
         std::vector<double>* lookup_table = getLayeredLookupTable(candidate.depth);
@@ -391,9 +384,9 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
 
     }
 
-    if( candidate.scan_index == 0.6/0.03)
+    if( candidate.scan_index == 0.3/0.03)
     {
-        std::cout<<"x offset:"<<candidate.x_offset<<" y_offset:"<< candidate.y_offset<<" score:"<<score<<std::endl;
+        //std::cout<<"x offset:"<<candidate.x_offset<<" y_offset:"<< candidate.y_offset<<" score:"<<score<<std::endl;
     }
     if(counter>50)
     {
