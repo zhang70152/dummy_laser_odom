@@ -253,24 +253,24 @@ vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
 {
   vector<Candidate> layered_candidates;
 
-  int x_min_bound = 0;
-  int x_max_bound = 0;
-  int y_min_bound = 0;
-  int y_max_bound = 0;
-  if(start_x < 0)
-  {
-    x_min_bound = -2;
-    x_max_bound = -1;
-  }
-  if(start_y < 0)
-  {
-    y_min_bound = -2;
-    y_max_bound = -1;
-  }
+  int x_min_bound = -2;
+  int x_max_bound = 2;
+  int y_min_bound = -2;
+  int y_max_bound = 2;
+//   if(start_x < 0)
+//   {
+//     x_min_bound = -2;
+//     x_max_bound = -1;
+//   }
+//   if(start_y < 0)
+//   {
+//     y_min_bound = -2;
+//     y_max_bound = -1;
+//   }
 
-  for(int i = 0; i < 2; i++)
+  for(int i = y_min_bound; i < y_max_bound; i++)
   {
-    for(int j = 0; j < 2; j++)
+    for(int j = x_min_bound; j < x_max_bound; j++)
     {
       for(int k = 0; k < rotated_scan_sets.size(); ++k)
       {
