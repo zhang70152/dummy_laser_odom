@@ -192,7 +192,7 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
 
 
         tf::Transform current_tf;
-        current_tf.setOrigin(tf::Vector3(0.6, 0.5, 0.0));
+        current_tf.setOrigin(tf::Vector3(-1.7, -1.0, 0.0));
         tf::Quaternion rotation;
         rotation.setRPY(0, 0, 0.0);
         current_tf.setRotation(rotation);
