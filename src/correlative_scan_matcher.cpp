@@ -94,7 +94,7 @@ bool correlativeScanMatcher::multiResolutionSearch(const pcl::PointCloud<pcl::Po
 
 
 
-    std::cout<<"final x: "<<-x<<"  final  y:"<<-y<<" final theta:"<<-theta<<" score:"<<best_candidate.score<<std::endl;
+    std::cout<<"result x:"<<-x<<"  y:"<<-y<<"  theta:"<<-theta<<" score:"<<best_candidate.score<<std::endl;
     std::cout<<"------------------------------------------------------------------------------------------"<<std::endl;
     if(fail_counter_>5)
     {
@@ -230,10 +230,10 @@ void correlativeScanMatcher::updateCellsLookupTable()
       }
     }
     layered_lookup_table_[k] = intermediate_look_up_table;
-    //if(k == 1)
-    {
-        std::cout<<"depth:"<<k<<" look up table size"<<layered_lookup_table_[k]->size()<<"cells length:"<<cell_length<<std::endl;
-    }
+   
+    
+    //std::cout<<"depth:"<<k<<" look up table size"<<layered_lookup_table_[k]->size()<<"cells length:"<<cell_length<<std::endl;
+    
   }
 
 
@@ -245,7 +245,7 @@ vector<Candidate> correlativeScanMatcher::generateLowestResolutionCell(const vec
   int step_size = linear_search_window_ /  resolution_;
   int cell_length = 1 << max_depth_;
   int cell_number = step_size / cell_length;
-  std::cout<<"cell_number: "<<cell_number<<std::endl;
+  //std::cout<<"cell_number: "<<cell_number<<std::endl;
   for(int i = -cell_number; i < cell_number; i++)
   {
     for(int j = -cell_number; j < cell_number; j++)

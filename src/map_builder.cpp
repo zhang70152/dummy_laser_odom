@@ -190,40 +190,27 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
         pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(cloud_scan, *pcl_cloud);  // PointCloud2 to pcl::PointCloud
 
-
         double x,y,theta;
+
         tf::Transform test_tf;
         tf::Quaternion rotation;
         pcl::PointCloud<pcl::PointXYZ> new_cloud;
 
-        test_tf.setOrigin(tf::Vector3(1, 1, 0.0));
-        rotation.setRPY(0, 0, 0.3);
-        test_tf.setRotation(rotation);
-        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+        transformPointCloud(*pcl_cloud, new_cloud, 1, 1, 0);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
-        test_tf.setOrigin(tf::Vector3(-1.2, 2.3, 0.0));
-        rotation.setRPY(0, 0, 0.1);
-        test_tf.setRotation(rotation);
-        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+        transformPointCloud(*pcl_cloud, new_cloud, -1.2, 2.3, 0.1);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
-        test_tf.setOrigin(tf::Vector3(0.5, -1.3, 0.0));
-        rotation.setRPY(0, 0, 0.52);
-        test_tf.setRotation(rotation);
-        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+
+        transformPointCloud(*pcl_cloud, new_cloud, 0.5, -1.3, 0.52);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
-        test_tf.setOrigin(tf::Vector3(-2.25, -1.65, 0.0));
-        rotation.setRPY(0, 0, 0.45);
-        test_tf.setRotation(rotation);
-        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+
+        transformPointCloud(*pcl_cloud, new_cloud, -2.25, -1.65, 0.45);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
-        test_tf.setOrigin(tf::Vector3(5.6, -6.8, 0.0));
-        rotation.setRPY(0, 0, 0.15);
-        test_tf.setRotation(rotation);
-        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+        transformPointCloud(*pcl_cloud, new_cloud, 5.6, -4.8, 0.25);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
         first_scan_ = false;
@@ -232,6 +219,24 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
 
 
 }
+
+
+void MapBuilder::transformPointCloud(const pcl::PointCloud<pcl::PointXYZ>& input, 
+                                  pcl::PointCloud<pcl::PointXYZ> &ouput, 
+                                  double x, double y, double theta)
+{
+    tf::Transform t;
+    tf::Quaternion rotation;
+    pcl::PointCloud<pcl::PointXYZ> new_cloud;
+
+        
+    t.setOrigin(tf::Vector3(x, y, 0.0));
+    rotation.setRPY(0, 0, theta);
+    t.setRotation(rotation);
+    pcl_ros::transformPointCloud(input, ouput, t);
+    std::cout<<"GT     x:"<<x<<"      y:"<<y<<"      theta:"<<theta<<std::endl;
+}
+
 
 bool MapBuilder::updateMap(const sensor_msgs::LaserScan& scan, long int dx, long int dy, double theta)
 {
@@ -275,7 +280,7 @@ bool MapBuilder::updateMap(const sensor_msgs::LaserScan& scan, long int dx, long
         //   // The remaining points are in free space.
         //   updatePointsOccupancy(false, pts, map_.data, log_odds_);
       }
-      std::cout<<"total num:"<<counter<<std::endl;
+      //std::cout<<"total num:"<<counter<<std::endl;
 
       return has_moved;
 }

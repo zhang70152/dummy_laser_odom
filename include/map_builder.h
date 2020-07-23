@@ -71,6 +71,10 @@ class MapBuilder
       }
     }
 
+    void transformPointCloud(const pcl::PointCloud<pcl::PointXYZ>& input, 
+                                  pcl::PointCloud<pcl::PointXYZ> &ouput, 
+                                  double x, double y, double theta);
+
     // ROS parameters.
     double angle_resolution_;  //!< Angle resolution for the ray cast lookup (rad).
                                //!< Defaults to 0.25 deg equivalent.
