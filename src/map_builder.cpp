@@ -191,19 +191,39 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
         pcl::fromROSMsg(cloud_scan, *pcl_cloud);  // PointCloud2 to pcl::PointCloud
 
 
-        tf::Transform current_tf;
-        current_tf.setOrigin(tf::Vector3(1, 1, 0.0));
-        tf::Quaternion rotation;
-        rotation.setRPY(0, 0, 0.3);
-        current_tf.setRotation(rotation);
-
-        pcl::PointCloud<pcl::PointXYZ> new_cloud;
-        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, current_tf);
-
-
-
         double x,y,theta;
+        tf::Transform test_tf;
+        tf::Quaternion rotation;
+        pcl::PointCloud<pcl::PointXYZ> new_cloud;
 
+        test_tf.setOrigin(tf::Vector3(1, 1, 0.0));
+        rotation.setRPY(0, 0, 0.3);
+        test_tf.setRotation(rotation);
+        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+        correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
+
+        test_tf.setOrigin(tf::Vector3(-1.2, 2.3, 0.0));
+        rotation.setRPY(0, 0, 0.1);
+        test_tf.setRotation(rotation);
+        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+        correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
+
+        test_tf.setOrigin(tf::Vector3(0.5, -1.3, 0.0));
+        rotation.setRPY(0, 0, 0.52);
+        test_tf.setRotation(rotation);
+        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+        correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
+
+        test_tf.setOrigin(tf::Vector3(-2.25, -1.65, 0.0));
+        rotation.setRPY(0, 0, 0.45);
+        test_tf.setRotation(rotation);
+        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
+        correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
+
+        test_tf.setOrigin(tf::Vector3(5.6, -6.8, 0.0));
+        rotation.setRPY(0, 0, 0.15);
+        test_tf.setRotation(rotation);
+        pcl_ros::transformPointCloud(*pcl_cloud, new_cloud, test_tf);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
         first_scan_ = false;

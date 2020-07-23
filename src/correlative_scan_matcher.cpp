@@ -49,19 +49,16 @@ bool correlativeScanMatcher::multiResolutionSearch(const pcl::PointCloud<pcl::Po
     if(candidates[i].score > max_score)
     {
       max_score = candidates[i].score;
-      best_candidate_in_low_resolution.scan_index = candidates[i].scan_index;
-      best_candidate_in_low_resolution.x_offset = candidates[i].x_offset;
-      best_candidate_in_low_resolution.y_offset = candidates[i].y_offset;
-      best_candidate_in_low_resolution.orientation = candidates[i].orientation;
-      best_candidate_in_low_resolution.score = candidates[i].score;
+      best_candidate_in_low_resolution = candidates[i];
     }
   }
  
   int start_x = best_candidate_in_low_resolution.x_offset * 2;
   int start_y = best_candidate_in_low_resolution.y_offset * 2;
-   std::cout<<"low resolution offset_x:"<<best_candidate_in_low_resolution.x_offset
-            <<" offset_y:"<<best_candidate_in_low_resolution.y_offset
-            <<" orientation:"<<best_candidate_in_low_resolution.orientation<<std::endl;
+   std::cout<<"lowest resolution candidate   x_offset:"<<best_candidate_in_low_resolution.x_offset
+            <<"  y_offset:"<<best_candidate_in_low_resolution.y_offset
+            <<"  orientation:"<<best_candidate_in_low_resolution.orientation
+            <<"  max_score:"<<best_candidate_in_low_resolution.score<<std::endl;
 
 
   // 3. Recursively search inside the best candidate in the lowest resolution cell, until the max depth reached(highest resolution).
@@ -97,7 +94,8 @@ bool correlativeScanMatcher::multiResolutionSearch(const pcl::PointCloud<pcl::Po
 
 
 
-    std::cout<<"final x: "<<x<<"  final  y:"<<y<<" final theta:"<<theta<<" score:"<<best_candidate.score<<std::endl;
+    std::cout<<"final x: "<<-x<<"  final  y:"<<-y<<" final theta:"<<-theta<<" score:"<<best_candidate.score<<std::endl;
+    std::cout<<"------------------------------------------------------------------------------------------"<<std::endl;
     if(fail_counter_>5)
     {
         return false;
@@ -133,11 +131,12 @@ Candidate correlativeScanMatcher::recursiveSearch(
                 best_candidate = higher_resolution_candidates[i];
             }
         }
-        std::cout<<"candidate cells num:"<<higher_resolution_candidates.size()/rotated_scan_sets.size()
-        <<" depth:"
-        <<" x_offset:"<<best_candidate.x_offset<<" y_offset:"<<best_candidate.y_offset
-        <<" orientation:"<<best_candidate.orientation
-        <<" max_score:"<< best_candidate.score<<std::endl;
+        std::cout//<<"candidate cells num:"<<higher_resolution_candidates.size()/rotated_scan_sets.size()
+        <<"          depth:   "<<best_candidate.depth
+        <<",         x_offset:"<<best_candidate.x_offset
+        <<"  y_offset:"<<best_candidate.y_offset
+        <<"  orientation:"<<best_candidate.orientation
+        <<"  max_score:"<< best_candidate.score<<std::endl;
         start_x = best_candidate.x_offset * 2;
         start_y = best_candidate.y_offset * 2;
         best_candidate = recursiveSearch(current_depth-1, best_candidate, start_x, start_y, rotated_scan_sets);
@@ -273,10 +272,10 @@ vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
 {
   vector<Candidate> layered_candidates;
 
-  int x_min_bound = -2;
-  int x_max_bound = 2;
-  int y_min_bound = -2;
-  int y_max_bound = 2;
+  int x_min_bound = -1;
+  int x_max_bound = 1;
+  int y_min_bound = -1;
+  int y_max_bound = 1;
 //   if(start_x < 0)
 //   {
 //     x_min_bound = -2;
@@ -364,8 +363,8 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
             if(!pointInMap(candidate.depth, cell_index))
             {
 
-                std::cout<<"Point out of boundry."<<"depth:"<<candidate.depth<<" index: "<<scan_in_grid[i]
-                <<" cell:"<<cell_index<<" lk table size:"<<lookup_table->size()<<std::endl;
+                // std::cout<<"Point out of boundry."<<"depth:"<<candidate.depth<<" index: "<<scan_in_grid[i]
+                // <<" cell:"<<cell_index<<" lk table size:"<<lookup_table->size()<<std::endl;
                 counter++;
                 continue;
             }
@@ -388,9 +387,9 @@ void correlativeScanMatcher::scoreCandidate(Candidate& candidate, const vector<R
     {
         //std::cout<<"x offset:"<<candidate.x_offset<<" y_offset:"<< candidate.y_offset<<" score:"<<score<<std::endl;
     }
-    if(counter>50)
+    if(counter>10)
     {
-        //std::cout<<"invalid point number:"<<counter<<std::endl;
+        std::cout<<"warning: "<<counter<<" points out boundary when scoring."<<std::endl;
     }
 
     candidate.score = score;
