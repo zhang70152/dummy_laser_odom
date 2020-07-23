@@ -5,11 +5,11 @@
     args="-d $(find dummy_laser_odom)/rviz_config/laser_odom.rviz" />
 
   <node pkg="dummy_laser_odom" name="dummy_laser_odom_node" type="dummy_laser_odom" output="screen">
-    <param name="map_width" type="double" value="800" />
-    <param name="map_height" type="double" value="800" />
+    <param name="map_width" type="double" value="1600" />
+    <param name="map_height" type="double" value="1600" />
     <param name="map_resolution" type="double" value="0.05" />
 
-    <param name="linear_seacher_window" type="double" value="2" />
+    <param name="linear_seacher_window" type="double" value="4" />
     <param name="linear_seacher_step" type="double" value="0.05" />
 
     <param name="angular_seacher_window" type="double" value="0.3" />

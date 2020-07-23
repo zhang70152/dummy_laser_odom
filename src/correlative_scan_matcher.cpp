@@ -47,11 +47,7 @@ bool correlativeScanMatcher::multiResolutionSearch(const sensor_msgs::LaserScan&
     if(candidates[i].score > max_score)
     {
       max_score = candidates[i].score;
-      best_candidate_in_low_resolution.scan_index = candidates[i].scan_index;
-      best_candidate_in_low_resolution.x_offset = candidates[i].x_offset;
-      best_candidate_in_low_resolution.y_offset = candidates[i].y_offset;
-      best_candidate_in_low_resolution.orientation = candidates[i].orientation;
-      best_candidate_in_low_resolution.score = candidates[i].score;
+      best_candidate_in_low_resolution = candidates[i];
     }
   }
  

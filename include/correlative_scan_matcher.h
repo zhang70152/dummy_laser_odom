@@ -43,7 +43,7 @@ struct Candidate {
   void operator=(const Candidate& other)  
   {
     scan_index = other.x_offset;
-    depth = other.x_offset;
+    depth = other.depth;
     x_offset = other.x_offset;
     y_offset = other.y_offset;
     x = other.x;
