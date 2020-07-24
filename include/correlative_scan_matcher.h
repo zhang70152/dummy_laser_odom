@@ -70,7 +70,8 @@ class correlativeScanMatcher
 
     bool multiResolutionSearch(const pcl::PointCloud<pcl::PointXYZ>& cloud_in, double& x, double& y, double& theta);
 
-    void setSearchParameters(float linear_search_window, float linear_search_step, float angular_search_window, float angular_search_step, int max_depth)
+    void setSearchParameters(float linear_search_window, float linear_search_step, 
+    float angular_search_window, float angular_search_step, int max_depth)
     {
       linear_search_window_ = linear_search_window;
       linear_search_step_ = linear_search_step;
@@ -91,9 +92,10 @@ class correlativeScanMatcher
     vector<RotatedScan> generateRotationScan(const pcl::PointCloud<pcl::PointXYZ>& cloud_in, float x, float y, float theta);
 
 
-    void scoreCandidate(Candidate& candidate, const vector<RotatedScan>& rotated_scan_sets);
+    void scoreCandidate(vector<Candidate>& candidate, const vector<RotatedScan>& rotated_scan_sets);
 
-    Candidate recursiveSearch(int current_depth,  Candidate best_candidate, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets);
+    Candidate recursiveSearch(int current_depth,   vector<Candidate> candidates, int start_x, int start_y, 
+    const vector<RotatedScan>& rotated_scan_sets, double min_score);
 
     int getPointIndex(int x, int y)
     {
@@ -166,6 +168,13 @@ class correlativeScanMatcher
     float last_y_;
     float last_theta_;
     int fail_counter_;
+
+    vector<int> trim_branch_num_;
+    vector<int> checked_candidate_;
+    vector<int> checked_num_;
+    int total_checked_candidates_;
+    double sorting_time_;
+    int counter_;
 };
 
 

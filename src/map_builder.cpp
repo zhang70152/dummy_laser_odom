@@ -196,7 +196,8 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
         tf::Quaternion rotation;
         pcl::PointCloud<pcl::PointXYZ> new_cloud;
 
-        transformPointCloud(*pcl_cloud, new_cloud, 1, 1, 0);
+        
+        transformPointCloud(*pcl_cloud, new_cloud, 0.8, 0.4, 0.3);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
         transformPointCloud(*pcl_cloud, new_cloud, -1.2, 2.3, 0.1);
@@ -210,8 +211,8 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
         transformPointCloud(*pcl_cloud, new_cloud, -2.25, -1.65, 0.45);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
-        transformPointCloud(*pcl_cloud, new_cloud, 5.6, -4.8, 0.25);
-        correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
+        // transformPointCloud(*pcl_cloud, new_cloud, 5.6, -4.8, 0);
+        // correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
         first_scan_ = false;
     }
