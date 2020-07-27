@@ -9,7 +9,7 @@
     <param name="map_height" type="double" value="1600" />
     <param name="map_resolution" type="double" value="0.05" />
 
-    <param name="linear_seacher_window" type="double" value="4" />
+    <param name="linear_seacher_window" type="double" value="12" />
     <param name="linear_seacher_step" type="double" value="0.05" />
 
     <param name="angular_seacher_window" type="double" value="0.6" />

@@ -49,11 +49,9 @@ bool correlativeScanMatcher::multiResolutionSearch(const pcl::PointCloud<pcl::Po
 
     scoreCandidate(candidates, rotated_scan_sets);
 
-    std::cout<<"depth 4 candidate num:"<<candidates.size()<<std::endl;
-    //return true;
     // 3. Recursively search inside the best candidate in the lowest resolution cell, until the max depth reached(highest resolution).
     Candidate best_candidate = recursiveSearch(max_depth_, candidates, 
-                                                0, 0, rotated_scan_sets,450);
+                                                0, 0, rotated_scan_sets,400);
 
     double x1 = best_candidate.x_offset * resolution_;
     double y1 = best_candidate.y_offset * resolution_;
@@ -67,11 +65,11 @@ bool correlativeScanMatcher::multiResolutionSearch(const pcl::PointCloud<pcl::Po
 
 
     for(int i = 0; i <= max_depth_; i++) {
-        std::cout<<"depth "<<i<<" trimed cells:"<<trim_branch_num_[i]
+        std::cout<<"depth "<<i
         <<"  checked_num_:"<<checked_num_[i]
          <<"  checked_candidate_:"<<checked_candidate_[i]<<std::endl;
     }
-    std::cout<<"depth 4 counter: "<<counter_ <<std::endl;
+
     std::cout<<"total_checked_candidates_: "<<total_checked_candidates_ <<std::endl;
     auto t_end = std::chrono::high_resolution_clock::now();
     double elapse_time_es = std::chrono::duration<double, std::milli>(t_end - t_start).count()/1000;
@@ -98,35 +96,30 @@ Candidate correlativeScanMatcher::recursiveSearch(
 
 
     if(current_depth == 0) {
+        checked_candidate_[current_depth]++;
         return *candidates.begin();
     }
     else {
 
-        if(current_depth == 4) {
-            std::cout<<"depth 4 check size:"<<candidates.size()<<std::endl;;
-        }
-
         Candidate  best_candidate;
         best_candidate.score = min_score;
         for(int i = 0; i < candidates.size(); i++) {
-
-
-            if(current_depth == 4) {
-                counter_++;
-            }
-
+               
+            //Because candidates is sorted, so trim all candidate less than min score.
             if (candidates[i].score <= min_score) {
-                trim_branch_num_[candidates[i].depth] += 1;
                 break;
             }
 
             start_x = candidates[i].x_offset * 2;
             start_y = candidates[i].y_offset * 2;
 
-            vector<Candidate> higher_resolution_candidates = generateLayeredCandidates(current_depth-1,  start_x,  start_y, rotated_scan_sets);
+            vector<Candidate> higher_resolution_candidates = generateLayeredCandidates(current_depth-1, 
+             start_x,  start_y, candidates[i].scan_index, rotated_scan_sets);
             
+
+           
             scoreCandidate(higher_resolution_candidates, rotated_scan_sets);
-  
+            
             Candidate best_offspring = recursiveSearch(current_depth-1, higher_resolution_candidates,
                                          start_x, start_y, rotated_scan_sets, best_candidate.score);
 
@@ -134,7 +127,6 @@ Candidate correlativeScanMatcher::recursiveSearch(
 
             checked_candidate_[current_depth]++;
         }
-
         return best_candidate;
     }
 }
@@ -244,7 +236,7 @@ vector<Candidate> correlativeScanMatcher::generateLowestResolutionCell(const vec
 
 
 vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
-  int depth, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets) {
+  int depth, int start_x, int start_y, int scan_index, const vector<RotatedScan>& rotated_scan_sets) {
     vector<Candidate> layered_candidates;
 
     int x_min_bound = 0;
@@ -254,16 +246,14 @@ vector<Candidate> correlativeScanMatcher::generateLayeredCandidates(
 
     for(int i = y_min_bound; i <= y_max_bound; i++) {
         for(int j = x_min_bound; j <= x_max_bound; j++) {
-            for(int k = 0; k < rotated_scan_sets.size(); ++k) {
-                Candidate new_candidate;
-                new_candidate.scan_index = rotated_scan_sets[k].index;
-                new_candidate.depth = depth;
-                new_candidate.x_offset = start_x + j;
-                new_candidate.y_offset = start_y + i;
-                new_candidate.orientation = rotated_scan_sets[k].rotated_angle;
-                new_candidate.score = LEAST_SCORE_NUMBER;
-                layered_candidates.push_back(new_candidate);
-            }
+            Candidate new_candidate;
+            new_candidate.scan_index = scan_index;
+            new_candidate.depth = depth;
+            new_candidate.x_offset = start_x + j;
+            new_candidate.y_offset = start_y + i;
+            new_candidate.orientation = rotated_scan_sets[scan_index].rotated_angle;
+            new_candidate.score = LEAST_SCORE_NUMBER;
+            layered_candidates.push_back(new_candidate);
         }
     }
     return layered_candidates; 
@@ -295,12 +285,18 @@ void correlativeScanMatcher::scoreCandidate(vector<Candidate>& candidates,
                                             const vector<RotatedScan>& rotated_scan_sets) {
 
     auto t_start = std::chrono::high_resolution_clock::now();
+
+
+
     for(int k = 0; k < candidates.size(); k++) {
 
+
         Candidate candidate = candidates[k];
+
         double score = LEAST_SCORE_NUMBER;
         ScanInGrid scan_in_grid = rotated_scan_sets[candidate.scan_index].discretize_scan;
         int counter = 0;
+
 
         for(int i = 0; i < scan_in_grid.size(); i++) {
             //1. For each point in scan, find column and row, convert to the corresponding resolution.  
@@ -334,10 +330,7 @@ void correlativeScanMatcher::scoreCandidate(vector<Candidate>& candidates,
 
         }
 
-        if( candidate.scan_index == 0.6/0.03) {
-            //std::cout<<"depth:"<<candidate.depth<<"  x offset:"<<candidate.x_offset<<" y_offset:"<< candidate.y_offset<<" score:"<<score<<std::endl;
-        }
-        if(counter>10) {
+        if(counter>20) {
             std::cout<<"warning: "<<counter<<" points out boundary when scoring."<<std::endl;
         }
 
@@ -346,9 +339,6 @@ void correlativeScanMatcher::scoreCandidate(vector<Candidate>& candidates,
         checked_num_[candidates[k].depth]++;
         //std::cout<<"offset x:"<<candidate.x_offset<<" offset y:"<<candidate.y_offset<<" score"<<score<<std::endl;
     }
-
-
-
 
     std::sort(candidates.begin(), candidates.end(), std::greater<Candidate>());
 

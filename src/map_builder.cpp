@@ -197,14 +197,14 @@ void MapBuilder::grow(const sensor_msgs::LaserScan& scan)
         pcl::PointCloud<pcl::PointXYZ> new_cloud;
 
         
-        transformPointCloud(*pcl_cloud, new_cloud, 0.8, 0.4, 0.3);
+        transformPointCloud(*pcl_cloud, new_cloud, 0.6, 0.3, 0.3);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
-        transformPointCloud(*pcl_cloud, new_cloud, -1.2, 2.3, 0.1);
+        transformPointCloud(*pcl_cloud, new_cloud, -5.2, 2.3, 0.1);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
 
-        transformPointCloud(*pcl_cloud, new_cloud, 0.5, -1.3, 0.52);
+        transformPointCloud(*pcl_cloud, new_cloud, 6.5, -7.3, 0.52);
         correlative_scan_matcher_->multiResolutionSearch(new_cloud, x, y, theta);
 
 

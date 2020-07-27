@@ -45,7 +45,7 @@ struct Candidate {
   bool operator>(const Candidate& other) const {return score > other.score;}
   void operator=(const Candidate& other)  
   {
-    scan_index = other.x_offset;
+    scan_index = other.scan_index;
     depth = other.depth;
     x_offset = other.x_offset;
     y_offset = other.y_offset;
@@ -125,7 +125,8 @@ class correlativeScanMatcher
 
     vector<Candidate> generateLowestResolutionCell(const vector<RotatedScan>& rotated_scan_sets);
 
-    vector<Candidate> generateLayeredCandidates(int depth, int start_x, int start_y, const vector<RotatedScan>& rotated_scan_sets);
+    vector<Candidate> generateLayeredCandidates(int depth, int start_x, int start_y, 
+                            int scan_index, const vector<RotatedScan>& rotated_scan_sets);
 
     double findMaxLogInCell(int depth, int start_x, int start_y, int cell_length);
 
